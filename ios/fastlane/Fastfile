@@ -22,3 +22,70 @@ platform :ios do
     upload_to_testflight
   end
 end
+
+platform :ios do
+  before_all do
+    setup_ci
+    load_asc_api_token
+  end
+
+  desc "Load the App Store Connect API token"
+  lane :load_asc_api_token do
+    app_store_connect_api_key(
+      key_id: ENV["ASC_KEY_ID"],
+      issuer_id: ENV["ASC_ISSUER_ID"],
+      key_content: ENV["ASC_KEY_P8"],
+      is_key_content_base64: true,
+      in_house: false
+    )
+  end
+
+  def bump_build_number()
+    latest_build_number = latest_testflight_build_number(initial_build_number: 0)
+    return (latest_build_number + 1)
+  end
+
+  def get_version_name()
+    version_name = lane_context[SharedValues::LATEST_TESTFLIGHT_VERSION]
+  
+    if version_name.empty?
+      puts "*** Version name is empty, add version 1.0.0 ***"
+      version_name = "1.0.0"
+    end
+  
+    return version_name
+  end
+
+  desc "Release a new build to Apple Store"
+  lane :release_beta do
+    commit = last_git_commit
+    puts "*** Starting iOS release for commit(#{commit[:abbreviated_commit_hash]}) ***"
+  end
+
+  #read api key from app_store_connect_api_key lane variable
+  api_key = lane_context[SharedValues::APP_STORE_CONNECT_API_KEY]
+
+  #sync certificates and profiles using match
+  sync_code_signing(
+    api_key: api_key,
+    type: "appstore",
+    readonly: true,
+  )
+
+  build_number = bump_build_number()
+  version_name = get_version_name()
+
+  Dir.chdir "../.." do
+    puts "*** Build flutter iOS release for version #{version_name}+#{build_number} ***"
+    sh("flutter", "build", "ipa", "--release", "--build-number=#{build_number}", "--build-name=#{version_name}")
+  end
+
+  puts "*** Build and sign iOS app release ***"
+  build_app(
+    skip_build_archive: true,
+    archive_path: "../build/ios/archive/Runner.xcarchive",
+  )
+
+  puts "*** Upload app to testflight ***"
+  upload_to_testflight(api_key: api_key)
+end

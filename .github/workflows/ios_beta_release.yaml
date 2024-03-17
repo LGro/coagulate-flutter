@@ -1,0 +1,36 @@
+name: Apple TestFlight Release
+
+on:
+  push:
+    branches:
+      - ios-beta
+
+jobs:
+  build-and-deploy-ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "2.7"
+      - name: Bundle install Gemfile
+        timeout-minutes: 5
+        run: bundle install
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.19.1"
+          channel: "stable"
+          architecture: x64
+          cache: true
+      - name: Build and Deploy to TestFlight
+        env:
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.GIT_PAT_TOKEN }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          cd ./ios
+          bundle exec fastlane release_beta

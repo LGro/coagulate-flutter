@@ -1,5 +1,6 @@
 # Custom
 report.xml
+.env.default
 
 # Miscellaneous
 *.class
