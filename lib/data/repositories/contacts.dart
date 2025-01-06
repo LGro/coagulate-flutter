@@ -323,17 +323,6 @@ class ContactsRepository {
     // TODO: Also handle network unavailable changes?
   }
 
-  Future<void> _veilidUpdateValueChangeCallback(
-      VeilidUpdateValueChange update) async {
-    final contact = _contacts.values.firstWhereOrNull(
-        (c) => c.dhtSettingsForReceiving?.key == update.key.toString());
-    if (contact == null) {
-      // TODO: log
-      return;
-    }
-    await updateContactFromDHT(contact);
-  }
-
   Future<void> updateAndWatchReceivingDHT({bool shuffle = false}) async {
     if (!ProcessorRepository
         .instance.processorConnectionState.attachment.publicInternetReady) {

@@ -28,7 +28,7 @@ Uri _shareUrl({required String key, required String psk}) => Uri(
     path: 'en/c',
     fragment: '$key:$psk');
 
-Widget _qrCodeButton(BuildContext context,
+Widget qrCodeButton(BuildContext context,
         {required String buttonText,
         required String alertTitle,
         required String qrCodeData}) =>
@@ -248,7 +248,8 @@ Widget sharingSettings(
           contact.dhtSettingsForSharing?.writer != null &&
           contact.dhtSettingsForSharing?.psk != null &&
           contact.sharedProfile != null &&
-          contact.sharedProfile!.isNotEmpty) ...[
+          contact.sharedProfile!.isNotEmpty &&
+          contact.details == null) ...[
         _paddedDivider(),
         connectingCard(context, contact),
       ],
@@ -277,6 +278,17 @@ Widget sharingSettings(
             child: Text(
                 'These current and future locations are available to them based '
                 'on the circles you shared the locations with.')),
+      ],
+
+      if (circleNames.isNotEmpty &&
+          contact.dhtSettingsForSharing != null &&
+          contact.dhtSettingsForSharing?.writer != null &&
+          contact.dhtSettingsForSharing?.psk != null &&
+          contact.sharedProfile != null &&
+          contact.sharedProfile!.isNotEmpty &&
+          contact.details != null) ...[
+        _paddedDivider(),
+        reconnectingCard(context, contact),
       ],
     ]));
 
@@ -314,7 +326,56 @@ Widget connectingCard(BuildContext context, CoagContact contact) =>
               ]),
               const SizedBox(height: 4),
               // TODO: Only show share back button when receiving key and psk but not writer are set i.e. is receiving updates and has share back settings
-              _qrCodeButton(context,
+              qrCodeButton(context,
+                  buttonText: 'letting them scan this QR code',
+                  alertTitle: 'Show to ${displayName(contact) ?? 'them'}',
+                  qrCodeData: _shareUrl(
+                    key: contact.dhtSettingsForSharing!.key,
+                    psk: contact.dhtSettingsForSharing!.psk!,
+                  ).toString()),
+              TextButton(
+                child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Icon(Icons.share),
+                      SizedBox(width: 8),
+                      Text('sending this personalized & secret link'),
+                      SizedBox(width: 4),
+                    ]),
+                // TODO: Add warning dialogue that the link contains a secret and should only be transmitted via an end to end encrypted messenger
+                onPressed: () async => Share.share(
+                    "I'd like to connect with you via Coagulate: "
+                    '${_shareUrl(key: contact.dhtSettingsForSharing!.key, psk: contact.dhtSettingsForSharing!.psk!)}\n'
+                    "Keep this link a secret, it's just for you."),
+              ),
+
+              const SizedBox(height: 4),
+              Text(
+                  'This QR code and link are both specifically for ${displayName(contact) ?? 'this contact'}. '
+                  'If you want to connect with someone else, go to their '
+                  'contact or add a new contact first.'),
+              const SizedBox(height: 8),
+            ]))
+    ]);
+
+Widget reconnectingCard(BuildContext context, CoagContact contact) =>
+    Stack(children: [
+      if (contact.dhtSettingsForSharing?.key != null &&
+          contact.dhtSettingsForSharing?.psk != null)
+        Padding(
+            padding: const EdgeInsets.only(left: 12, right: 12, top: 8),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                const Icon(Icons.private_connectivity),
+                const SizedBox(width: 4),
+                Text(
+                    'Connect with ${displayName(contact) ?? 'them'} by either:',
+                    textScaler: const TextScaler.linear(1.2))
+              ]),
+              const SizedBox(height: 4),
+              // TODO: Only show share back button when receiving key and psk but not writer are set i.e. is receiving updates and has share back settings
+              qrCodeButton(context,
                   buttonText: 'letting them scan this QR code',
                   alertTitle: 'Show to ${displayName(contact) ?? 'them'}',
                   qrCodeData: _shareUrl(

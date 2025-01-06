@@ -27,16 +27,30 @@ class VeilidDhtStorage extends DistributedStorage {
   Future<String> readPasswordEncryptedDHTRecord(
       {required String recordKey, required String secret}) async {
     final _key = Typed<FixedEncodedString43>.fromString(recordKey);
-    final DHTRecord record;
+    DHTRecord record;
     if (_openedRecords.containsKey(_key)) {
       record = _openedRecords[_key]!;
     } else {
       // TODO: Handle VeilidAPIExceptionKeyNotFound, VeilidAPIExceptionTryAgain
-      record = await DHTRecordPool.instance.openRecordRead(
-          debugName: 'coag::read',
-          Typed<FixedEncodedString43>.fromString(recordKey),
-          crypto: const VeilidCryptoPublic());
-      _openedRecords[record.key] = record;
+
+      var retry = 3;
+      while (true) {
+        try {
+          record = await DHTRecordPool.instance.openRecordRead(
+              debugName: 'coag::read',
+              Typed<FixedEncodedString43>.fromString(recordKey),
+              crypto: const VeilidCryptoPublic());
+          _openedRecords[record.key] = record;
+          break;
+        } on VeilidAPIExceptionKeyNotFound catch (e) {
+          await Future.delayed(Duration(seconds: 1));
+          retry--;
+          if (retry == 0) {
+            rethrow;
+          }
+          print('Retrying on $recordKey ${e.toString()}');
+        }
+      }
     }
     final raw = await record.get(refreshMode: DHTRecordRefreshMode.network);
     if (raw == null) {

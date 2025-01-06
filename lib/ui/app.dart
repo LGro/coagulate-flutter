@@ -20,6 +20,7 @@ import '../tick.dart';
 import '../veilid_init.dart';
 import 'contact_details/page.dart';
 import 'contact_list/page.dart';
+import 'dummy/page.dart';
 import 'locations/page.dart';
 import 'map/page.dart';
 import 'profile/page.dart';
@@ -150,7 +151,7 @@ class AppRouter {
                   GoRoute(
                       path: 'settings',
                       name: 'settings',
-                      builder: (_, __) => const SettingsPage()),
+                      builder: (_, __) => const DummyPage()),
                   GoRoute(
                       // TODO: Figure out how to handle language on coagulate.social so that we don't need to add the language to the links
                       path: 'en/c',
